@@ -45,9 +45,15 @@ local function handleCommand(command)
       os.sleep(2)
     end
   elseif command == "5" then
-    message("Blue Screen of Death!")
-    os.sleep(1)
-    computer.shutdown(true)
+          gpu.setForeground(0xFFFFFF)
+    gpu.setBackground(0x0000FF)
+    gpu.fill(1, 1, 80, 25, " ")
+    gpu.set(32, 12, "your pc dead sorry :(")
+    gpu.setBackground(0x000000)
+    while true do
+      os.sleep(1)
+    end
+
   elseif command == "6" then
     message("Are you sure you want to shutdown the computer? (y/n)")
     while true do
