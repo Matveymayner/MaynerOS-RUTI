@@ -1,5 +1,6 @@
 local component = require("component")
 local event = require("event")
+local filesystem = require("filesystem")
 local gpu = component.gpu
 local computer = require("computer")
 local os = require("os")
@@ -38,22 +39,18 @@ local function handleCommand(command)
     message("Are you sure you want to delete the OS? (y/n)")
     local _, _, _, _, _, response = event.pull("key_down")
     if response == 21 then
-      os.remove("/os.lua")
+      os.remove("/MaynerOS-RUTI.lua")
       os.exit()
     else
       message("OS delete aborted.")
       os.sleep(2)
     end
   elseif command == "5" then
-          gpu.setForeground(0xFFFFFF)
+   gpu.setForeground(0xFFFFFF)
     gpu.setBackground(0x0000FF)
     gpu.fill(1, 1, 80, 25, " ")
-    gpu.set(32, 12, "your pc dead sorry :(")
+    gpu.set(32, 12, ":( Your PC Dead Sorry")
     gpu.setBackground(0x000000)
-    while true do
-      os.sleep(1)
-    end
-
   elseif command == "6" then
     message("Are you sure you want to shutdown the computer? (y/n)")
     while true do
@@ -76,33 +73,153 @@ end
 
 -- Очищаем экран
 gpu.setForeground(0xFFFFFF)
-gpu.setBackground(0x000000)
+gpu.setBackground(0x0000FF)
 gpu.fill(1, 1, 80, 25, " ")
 
 -- Выводим кнопки
-drawButton(25, 8, 30, 3, "Shutdown", 0xFFFFFF, 0x555555)
-drawButton(25, 12, 30, 3, "Reboot", 0xFFFFFF, 0x555555)
-drawButton(25, 16, 30, 3, "Random Number", 0xFFFFFF, 0x555555)
-drawButton(25, 20, 30, 3, "Delete OS", 0xFFFFFF, 0x555555)
-drawButton(25, 24, 30, 3, "Blue Screen", 0xFFFFFF, 0x555555)
-drawButton(25, 28, 30, 3, "Eternal Shutdown", 0xFFFFFF, 0x555555)
+drawButton(10, 2, 12, 3, "Shutdown", 0xFFFFFF, 0x555555)
+drawButton(24, 2, 12, 3, "Reboot", 0xFFFFFF, 0x555555)
+drawButton(38, 2, 15, 3, "Random Number", 0xFFFFFF, 0x555555)
+drawButton(55, 2, 12, 3, "Delete OS", 0xFFFFFF, 0x555555)
+drawButton(69, 2, 12, 3, "Blue Screen", 0xFFFFFF, 0x555555)
+
+-- Выводим нижнюю полоску с надписью "Mayner OS"
+gpu.setBackground(0xFFFFFF)
+gpu.setForeground(0x000000)
+gpu.fill(1, 23, 80, 2, " ")
+gpu.set(34, 24, "Mayner OS")
+
+-- Функция для создания папки
+local function createFolder()
+  message("Enter folder name:")
+  local _, _, _, _, _, name = event.pull("key_down")
+  if name and #name > 0 then
+    local path = filesystem.getWorkingDirectory() .. "/" .. name
+    local success, err = filesystem.makeDirectory(path)
+    if success then
+      message("Folder created: " .. path)
+    else
+      message("Failed to create folder: " .. err)
+    end
+    os.sleep(2)
+  else
+    message("Invalid folder name.")
+    os.sleep(2)
+  end
+end
+
+-- Функция для создания файла
+local function createFile()
+  message("Enter file name:")
+  local _, _, _, _, _, name = event.pull("key_down")
+  if name and #name > 0 then
+    local path = filesystem.getWorkingDirectory() .. "/" .. name
+    local file = io.open(path, "w")
+    if file then
+      file:close()
+      message("File created: " .. path)
+    else
+      message("Failed to create file.")
+    end
+    os.sleep(2)
+  else
+    message("Invalid file name.")
+    os.sleep(2)
+  end
+end
+
+-- Функция для переименования папки или файла
+local function renameItem()
+  message("Enter current name:")
+  local _, _, _, _, _, currentName = event.pull("key_down")
+  if currentName and #currentName > 0 then
+    message("Enter new name:")
+    local _, _, _, _, _, newName = event.pull("key_down")
+    if newName and #newName > 0 then
+      local currentPath = filesystem.getWorkingDirectory() .. "/" .. currentName
+      local newPath = filesystem.getWorkingDirectory() .. "/" .. newName
+      local success, err = filesystem.rename(currentPath, newPath)
+      if success then
+        message("Renamed: " .. currentPath .. " to " .. newPath)
+      else
+        message("Failed to rename: " .. err)
+      end
+      os.sleep(2)
+    else
+      message("Invalid new name.")
+      os.sleep(2)
+    end
+  else
+    message("Invalid current name.")
+    os.sleep(2)
+  end
+end
+
+-- Функция для редактирования файла
+local function editFile()
+  message("Enter file name:")
+  local _, _, _, _, _, name = event.pull("key_down")
+  if name and #name > 0 then
+    local path = filesystem.getWorkingDirectory() .. "/" .. name
+    if filesystem.exists(path) and not filesystem.isDirectory(path) then
+      gpu.fill(1, 1, 80, 25, " ")
+      gpu.setForeground(0xFFFFFF)
+      gpu.setBackground(0x000000)
+      local file = io.open(path, "r")
+      if file then
+        local content = file:read("*a")
+        file:close()
+        gpu.set(1, 1, content)
+        gpu.setForeground(0x00FF00)
+        gpu.set(1, 24, "Press any key to save and exit.")
+        local _, _, _, _, _, _ = event.pull("key_down")
+        file = io.open(path, "w")
+        if file then
+          file:write(content)
+          file:close()
+          message("File saved: " .. path)
+        else
+          message("Failed to save file.")
+        end
+      else
+        message("Failed to open file.")
+      end
+    else
+      message("File not found.")
+    end
+    os.sleep(2)
+  else
+    message("Invalid file name.")
+    os.sleep(2)
+  end
+end
 
 -- Ожидаем нажатия кнопки
 while true do
   local _, _, x, y = event.pull("touch")
-  if x >= 25 and x <= 54 then
-    if y == 8 then
+  if y == 2 then
+    if x >= 10 and x <= 21 then
       handleCommand("1")
-    elseif y == 12 then
+    elseif x >= 24 and x <= 35 then
       handleCommand("2")
-    elseif y == 16 then
+    elseif x >= 38 and x <= 52 then
       handleCommand("3")
-    elseif y == 20 then
+    elseif x >= 55 and x <= 66 then
       handleCommand("4")
-    elseif y == 24 then
+    elseif x >= 69 and x <= 80 then
       handleCommand("5")
-    elseif y == 28 then
-      handleCommand("6")
+    end
+  elseif y == 24 and x >= 1 and x <= 9 then
+    message("Choose an option:\n1. Create Folder\n2. Create File\n3. Rename Item\n4. Edit File")
+    local _, _, _, _, _, option = event.pull("key_down")
+    if option == 2 then
+      createFolder()
+    elseif option == 3 then
+      createFile()
+    elseif option == 4 then
+      renameItem()
+    elseif option == 5 then
+      editFile()
     end
   end
 end
